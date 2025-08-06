@@ -11,7 +11,7 @@ require (
 
 require (
 	github.com/alecthomas/kingpin v2.2.6+incompatible
-	github.com/gosnmp/gosnmp v1.42.1 // indirect
+	github.com/gosnmp/gosnmp v1.42.1
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0
 )
