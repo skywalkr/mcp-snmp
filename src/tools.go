@@ -25,18 +25,21 @@ type WalkParams struct {
 }
 
 func SnmpGet(ctx context.Context, cc *mcp.ServerSession, params *mcp.CallToolParamsFor[GetParams]) (*mcp.CallToolResultFor[any], error) {
-	g := NewGoSNMP(params.Arguments.Auth, params.Arguments.Target)
+	g, err := NewGoSNMP(params.Arguments.Auth, params.Arguments.Target)
 
-	if err := g.Connect(); err != nil {
-		return nil, fmt.Errorf("connect() err: '%v'", err)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create snmp client: '%w'", err)
 	}
 
+	if err := g.Connect(); err != nil {
+		return nil, fmt.Errorf("error connecting to target %s: %s", g.Target, err)
+	}
 	defer g.Conn.Close()
 
 	res, err := g.Get(params.Arguments.OIDs)
 
 	if err != nil {
-		return nil, fmt.Errorf("snmpget() err: '%v'", err)
+		return nil, fmt.Errorf("error getting target %s: %s", g.Target, err)
 	}
 
 	var sb strings.Builder
@@ -52,12 +55,15 @@ func SnmpGet(ctx context.Context, cc *mcp.ServerSession, params *mcp.CallToolPar
 
 // No amount of prompt engineering resulted in this tool being called more than once...hence the array
 func SnmpWalk(ctx context.Context, cc *mcp.ServerSession, params *mcp.CallToolParamsFor[WalkParams]) (*mcp.CallToolResultFor[any], error) {
-	g := NewGoSNMP(params.Arguments.Auth, params.Arguments.Target)
+	g, err := NewGoSNMP(params.Arguments.Auth, params.Arguments.Target)
 
-	if err := g.Connect(); err != nil {
-		return nil, fmt.Errorf("connect() err: '%v'", err)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create snmp client: '%w'", err)
 	}
 
+	if err := g.Connect(); err != nil {
+		return nil, fmt.Errorf("error connecting to target %s: %s", g.Target, err)
+	}
 	defer g.Conn.Close()
 
 	var sb strings.Builder
@@ -66,7 +72,7 @@ func SnmpWalk(ctx context.Context, cc *mcp.ServerSession, params *mcp.CallToolPa
 		formatValue(&sb, pdu)
 		return nil
 	}); err != nil {
-		return nil, fmt.Errorf("walk() err: '%v'", err)
+		return nil, fmt.Errorf("error walking target %s: %s", g.Target, err)
 	}
 
 	return &mcp.CallToolResultFor[any]{

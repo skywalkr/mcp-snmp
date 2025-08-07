@@ -3,9 +3,13 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"snmp_mcp_server/config"
+	"strconv"
+	"strings"
 
 	"github.com/gosnmp/gosnmp"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -48,14 +52,30 @@ func main() {
 	}
 }
 
-func NewGoSNMP(auth string, target string) *gosnmp.GoSNMP {
+func NewGoSNMP(auth string, target string) (*gosnmp.GoSNMP, error) {
+	transport := "udp"
+	if s := strings.SplitN(target, "://", 2); len(s) == 2 {
+		transport = s[0]
+		target = s[1]
+	}
+	port := uint16(161)
+	if host, _port, err := net.SplitHostPort(target); err == nil {
+		target = host
+		p, err := strconv.Atoi(_port)
+		if err != nil {
+			return nil, fmt.Errorf("error converting port number to int for target %q: %w", target, err)
+		}
+		port = uint16(p)
+	}
+
 	g := &gosnmp.GoSNMP{
 		ExponentialTimeout: true,
 		MaxOids:            gosnmp.MaxOids,
-		Port:               161,
+		Port:               port,
 		Retries:            *C.WalkParams.Retries,
 		Target:             target,
 		Timeout:            C.WalkParams.Timeout,
+		Transport:          transport,
 	}
 
 	if C.WalkParams.AllowNonIncreasingOIDs {
@@ -69,5 +89,5 @@ func NewGoSNMP(auth string, target string) *gosnmp.GoSNMP {
 		cauth.ConfigureSNMP(g, "")
 	}
 
-	return g
+	return g, nil
 }
