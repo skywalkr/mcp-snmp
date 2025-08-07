@@ -19,9 +19,9 @@ type GetParams struct {
 }
 
 type WalkParams struct {
-	Auth   string   `json:"auth" jsonschema:"Authorization"`
-	OIDs   []string `json:"oids" jsonschema:"Root OID(s) to walk"`
-	Target string   `json:"target" jsonschema:"Target IP or hostname"`
+	Auth   string `json:"auth" jsonschema:"Authorization"`
+	OID    string `json:"oid" jsonschema:"Root OID to walk"`
+	Target string `json:"target" jsonschema:"Target IP or hostname"`
 }
 
 func SnmpGet(ctx context.Context, cc *mcp.ServerSession, params *mcp.CallToolParamsFor[GetParams]) (*mcp.CallToolResultFor[any], error) {
@@ -62,13 +62,11 @@ func SnmpWalk(ctx context.Context, cc *mcp.ServerSession, params *mcp.CallToolPa
 
 	var sb strings.Builder
 
-	for _, oid := range params.Arguments.OIDs {
-		if err := g.Walk(oid, func(pdu gosnmp.SnmpPDU) error {
-			formatValue(&sb, pdu)
-			return nil
-		}); err != nil {
-			return nil, fmt.Errorf("walk() err: '%v'", err)
-		}
+	if err := g.Walk(params.Arguments.OID, func(pdu gosnmp.SnmpPDU) error {
+		formatValue(&sb, pdu)
+		return nil
+	}); err != nil {
+		return nil, fmt.Errorf("walk() err: '%v'", err)
 	}
 
 	return &mcp.CallToolResultFor[any]{

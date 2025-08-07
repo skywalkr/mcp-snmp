@@ -30,8 +30,8 @@ func main() {
 	C = conf
 	server := mcp.NewServer(&mcp.Implementation{Name: "snmp-tools", Version: "v1.0.0"}, nil)
 
-	mcp.AddTool(server, &mcp.Tool{Name: "snmp_get", Description: "The snmp_get command is used to retrieve the value of a specific OID (Object Identifier) from an SNMP-enabled device. It performs a single request to fetch the value of one or more explicitly specified OIDs, and is ideal when you know exactly what piece of data you're querying."}, SnmpGet)
-	mcp.AddTool(server, &mcp.Tool{Name: "snmp_walk", Description: "The snmp_walk command is used to recursively retrieve a subtree of OIDs from an SNMP agent. It starts from a given root OID and walks down the tree, returning all OIDs and their values beneath it. This is useful for exploring available SNMP data or retrieving entire tables (e.g., interface lists, ARP tables)."}, SnmpWalk)
+	mcp.AddTool(server, &mcp.Tool{Name: "skywalkr_snmp_get", Description: "The skywalkr_snmp_get command is used to retrieve the value of a specific OID (Object Identifier) from an SNMP-enabled device. It performs a single request to fetch the value of one or more explicitly specified OIDs, and is ideal when you know exactly what piece of data you're querying."}, SnmpGet)
+	mcp.AddTool(server, &mcp.Tool{Name: "skywalkr_snmp_walk", Description: "The skywalkr_snmp_walk command is used to recursively retrieve a subtree of OIDs from an SNMP agent. It starts from a given root OID and walks down the tree, returning all OIDs and their values beneath it. This is useful for exploring available SNMP data or retrieving entire tables (e.g., interface lists, ARP tables)."}, SnmpWalk)
 
 	if *httpListenAddress != "" {
 		handler := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server {
