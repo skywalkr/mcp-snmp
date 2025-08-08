@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"math"
 	"strings"
 	"time"
@@ -24,22 +25,26 @@ type WalkParams struct {
 	Target string `json:"target" jsonschema:"Target IP or hostname"`
 }
 
-func SnmpGet(ctx context.Context, cc *mcp.ServerSession, params *mcp.CallToolParamsFor[GetParams]) (*mcp.CallToolResultFor[any], error) {
+func getHandler(ctx context.Context, cc *mcp.ServerSession, params *mcp.CallToolParamsFor[GetParams]) (*mcp.CallToolResultFor[any], error) {
 	g, err := NewGoSNMP(params.Arguments.Auth, params.Arguments.Target)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create snmp client: '%w'", err)
 	}
 
+	slog.Debug("Connect()", "target", g.Target, "version", g.Version)
 	if err := g.Connect(); err != nil {
-		return nil, fmt.Errorf("error connecting to target %s: %s", g.Target, err)
+		slog.Error("Connect()", "target", g.Target, "version", g.Version, "error", err)
+		return nil, fmt.Errorf("failed connecting to target %s: %s", g.Target, err)
 	}
 	defer g.Conn.Close()
 
+	slog.Debug("Get()", "target", g.Target, "OID(s)", params.Arguments.OIDs)
 	res, err := g.Get(params.Arguments.OIDs)
 
 	if err != nil {
-		return nil, fmt.Errorf("error getting target %s: %s", g.Target, err)
+		slog.Error("Get()", "target", g.Target, "version", g.Version, "error", err)
+		return nil, fmt.Errorf("failed getting target %s: %s", g.Target, err)
 	}
 
 	var sb strings.Builder
@@ -53,26 +58,29 @@ func SnmpGet(ctx context.Context, cc *mcp.ServerSession, params *mcp.CallToolPar
 	}, nil
 }
 
-// No amount of prompt engineering resulted in this tool being called more than once...hence the array
-func SnmpWalk(ctx context.Context, cc *mcp.ServerSession, params *mcp.CallToolParamsFor[WalkParams]) (*mcp.CallToolResultFor[any], error) {
+func walkHandler(ctx context.Context, cc *mcp.ServerSession, params *mcp.CallToolParamsFor[WalkParams]) (*mcp.CallToolResultFor[any], error) {
 	g, err := NewGoSNMP(params.Arguments.Auth, params.Arguments.Target)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create snmp client: '%w'", err)
 	}
 
+	slog.Debug("Connect()", "target", g.Target, "version", g.Version)
 	if err := g.Connect(); err != nil {
-		return nil, fmt.Errorf("error connecting to target %s: %s", g.Target, err)
+		slog.Error("Connect()", "target", g.Target, "version", g.Version, "error", err)
+		return nil, fmt.Errorf("failed connecting to target %s: %s", g.Target, err)
 	}
 	defer g.Conn.Close()
 
 	var sb strings.Builder
 
-	if err := g.Walk(params.Arguments.OID, func(pdu gosnmp.SnmpPDU) error {
+	slog.Debug("BulkWalk()", "target", g.Target, "OID", params.Arguments.OID)
+	if err := g.BulkWalk(params.Arguments.OID, func(pdu gosnmp.SnmpPDU) error {
 		formatValue(&sb, pdu)
 		return nil
 	}); err != nil {
-		return nil, fmt.Errorf("error walking target %s: %s", g.Target, err)
+		slog.Error("BulkWalk()", "target", g.Target, "version", g.Version, "error", err)
+		return nil, fmt.Errorf("failed walking target %s: %s", g.Target, err)
 	}
 
 	return &mcp.CallToolResultFor[any]{
@@ -86,6 +94,8 @@ func formatValue(writer io.Writer, pdu gosnmp.SnmpPDU) {
 		fmt.Fprintf(writer, "%s = INTEGER: %d\n", pdu.Name, pdu.Value)
 	case gosnmp.IPAddress:
 		fmt.Fprintf(writer, "%s = IpAddress: %s\n", pdu.Name, pdu.Value)
+	case gosnmp.NoSuchInstance:
+		fmt.Fprintf(writer, "%s = No Such Instance currently exists at this OID\n", pdu.Name)
 	case gosnmp.NoSuchObject:
 		fmt.Fprintf(writer, "%s = No Such Object available on this agent at this OID\n", pdu.Name)
 	case gosnmp.ObjectIdentifier:

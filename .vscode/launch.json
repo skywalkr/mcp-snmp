@@ -11,7 +11,9 @@
             "mode": "auto",
             "program": "${workspaceFolder}/src/.",
             "args": [
-                "--http-listen-address=:8080",
+                "--log-level=debug",
+                "--transport=http",
+                "--transport-address=:8080"
             ]
         }
     ]

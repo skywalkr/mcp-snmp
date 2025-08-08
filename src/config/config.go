@@ -21,7 +21,7 @@ var (
 		Version:       2,
 	}
 
-	DefaultWalkParams = WalkParams{
+	DefaultOptions = Options{
 		MaxRepetitions:          25,
 		Retries:                 &defaultRetries,
 		Timeout:                 time.Second * 5,
@@ -44,12 +44,11 @@ type Auth struct {
 
 // Config for the snmp_exporter.
 type Config struct {
-	Auths      map[string]*Auth `yaml:"auths,omitempty"`
-	WalkParams WalkParams       `yaml:"params,omitempty"`
-	Version    int              `yaml:"version,omitempty"`
+	Auths   map[string]*Auth `yaml:"auths,omitempty"`
+	Options Options          `yaml:"options,omitempty"`
 }
 
-type WalkParams struct {
+type Options struct {
 	MaxRepetitions          uint32        `yaml:"max_repetitions,omitempty"`
 	Retries                 *int          `yaml:"retries,omitempty"`
 	Timeout                 time.Duration `yaml:"timeout,omitempty"`
@@ -65,7 +64,7 @@ func (s *Secret) Set(value string) {
 
 func LoadFile(path string, expandEnvVars bool) (*Config, error) {
 	cfg := &Config{
-		WalkParams: DefaultWalkParams,
+		Options: DefaultOptions,
 	}
 	content, err := os.ReadFile(path)
 	if err != nil {
